@@ -3,7 +3,9 @@ const users = require('../models/user');
 
 exports.otpVerification = async (req,res) => {
     const {email,otpFromRequest} = req.body;
-    
+
+    // console.log(email,otpFromRequest)
+
     if(!otpFromRequest){
         return res.status(200).json({
             message:'Invalid otp from request'
@@ -16,6 +18,7 @@ exports.otpVerification = async (req,res) => {
         return res.status(200).json({
             message:'User not registered. please sign up first.',
             isUserNotRegistered: true,
+            loginSuccess: false,
             success:false
         })
     }
@@ -37,7 +40,9 @@ exports.otpVerification = async (req,res) => {
             message:'OTP does not match',
             isOTPExpired: false,
             isOTPMatching:false,
-            success:false
+            success:false,
+            loginSuccess: false,
+
         })
     }
 

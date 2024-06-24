@@ -20,6 +20,8 @@ exports.login = async (req, res) => {
             return res.status(404).json({
                 message:'User not found. Please sign up first.',
                 success: false,
+                loginSuccess: false,
+
             })
         }
 
@@ -30,6 +32,8 @@ exports.login = async (req, res) => {
                 message:'Invalid password.',
                 isInvalidPassword: true,
                 success: false,
+                loginSuccess: false,
+
             }) 
         }
 
@@ -57,6 +61,7 @@ exports.login = async (req, res) => {
                     // console.log('Token:', token);
                      return res.cookie('secureLoginCookie',token,cookieOptions).status(200).json({
                         message: 'Login successful',
+                        loginSuccess: true,
                         proceedToVerifyAccountScreen:false,
                         userDetails: exitingUser,
                         success:true,
@@ -65,12 +70,37 @@ exports.login = async (req, res) => {
             } else {
 
                 try {
+
                     const email = exitingUser.email;
                     const firstName = exitingUser.firstName;
                     const lastName = exitingUser.lastName;
+
+                    // check if otp is already send over mail and still valid (exists in database) 
+                    const isOTPExistsInDB =  await otpModel.findOne({email: email})
+
+                    const payloadOne = {
+                        userEmail:email,
+                        tokenExpiresAt:Date.now()+ 5*60*1000,
+                    }
+                    const tokenOne = jwt.sign(payloadOne, process.env.JWT_SECRET, { expiresIn: '300s' });
+
+                    if(isOTPExistsInDB){
+                        return res.status(200).json({
+                            message: 'User account is not verified. Please verify your account and try again.',
+                            userEmail:email,
+                            isOtpValid:true,
+                            loginSuccess: false,
+                            proceedToAccountVerificationScreen:true,
+                            action:'login',
+                            token:tokenOne
+                            // savedOtpDoc
+                        }) 
+                    }
+
         
                     const payload = {
-                        userEmail:email
+                        userEmail:email,
+                        tokenExpiresAt:Date.now()+ 5*60*1000,
                     }
                     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '300s' });
                     const url = process.env.ACCOUNT_VERIFICATION_FRONTEND_URL + token;
@@ -90,6 +120,7 @@ exports.login = async (req, res) => {
                     return res.status(200).json({
                         message: 'User account is not verified. Please verify your account and try again.',
                         userEmail:email,
+                        loginSuccess: false,
                         proceedToAccountVerificationScreen:true,
                         action:'login',
                         email,
