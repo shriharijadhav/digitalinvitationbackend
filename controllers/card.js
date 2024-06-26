@@ -3,11 +3,15 @@ const EventModel = require('../models/events.model')
 const EngagementModel = require('../models/engagement.model')
 const SangeetModel = require('../models/sangeet.model')
 const HaldiModel = require('../models/haldi.model')
+const BrideModel = require('../models/bride.model')
+const GroomModel = require('../models/groom.model')
+
 const mongoose = require('mongoose');
 const cloudinary = require('cloudinary').v2;
 const dotenv = require('dotenv');
 dotenv.config();
 const fs = require('fs')
+const ParentModel = require('../models/parents.model')
 
 const brideImagesFolderName = process.env.brideImagesFolderName
 const groomImagesFolderName = process.env.groomImagesFolderName
@@ -35,18 +39,15 @@ exports.createNewCard = async(req,res) =>{
 
 
     
-    const tempNewCardData = JSON.parse(req.body.allData);
-    const eventData  = tempNewCardData.eventDetails;
-    const brideData = tempNewCardData.eventDetails.brideDetails;
-    const groomData = tempNewCardData.eventDetails.groomDetails;
-    const engagementData = tempNewCardData.eventDetails.subEvents.engagementDetails;
-    const sangeetData = tempNewCardData.eventDetails.subEvents.sangeetDetails;
-    const haldiData = tempNewCardData.eventDetails.subEvents.haldiDetails;
-    const InviterData = tempNewCardData.eventDetails.InviterDetails;
-    const galleryData = tempNewCardData.eventDetails.galleryDetails;
-    const videoGalleryData = tempNewCardData.eventDetails.videoGalleryDetails;
+    const allData = JSON.parse(req.body.allData)
+    const eventData = allData.eventDetails;
+    const engagementData = allData.eventDetails.subEvents.engagementDetails
+    const sangeetData = allData.eventDetails.subEvents.sangeetDetails
+    const haldiData = allData.eventDetails.subEvents.haldiDetails
+    const brideData = allData.brideDetails
+    const groomData = allData.groomDetails
 
-   
+    
 
     
     const brideActualImage = req.files.find(f => f.fieldname === 'brideActualImage');
@@ -92,8 +93,8 @@ exports.createNewCard = async(req,res) =>{
 
 
 
-    let brideMotherImage_secureUrl ='';
-    let brideFatherImage_secureUrl = '';
+    let brideMotherImage_secureUrl ;
+    let brideFatherImage_secureUrl ;
     let groomMotherImage_secureUrl = '';
     let groomFatherImage_secureUrl = '';
 
@@ -149,12 +150,20 @@ exports.createNewCard = async(req,res) =>{
     let isEngagementDetailsSaved = false;
     let isSangeetDetailsSaved = false;
     let isHaldiDetailsSaved = false;
-
+    let isBrideDetailsSaved = false;
+    let isGroomDetailsSaved = false;
+    let isParentDetailsSaved = false;
+ 
     // create a new card by inserting user ID into it
-    const {cardStatus,cardLink,paymentStatus,selectedTemplate,userId} = tempNewCardData;
+    const {cardStatus,cardLink,paymentStatus,selectedTemplate,userId} = JSON.parse(req.body.allData);
     const user_Id = new mongoose.Types.ObjectId(userId);
     const savedCard = await CardModel.create({cardLink:cardLink, cardStatus:cardStatus,selectedTemplate:selectedTemplate,paymentStatus:paymentStatus,user:user_Id})
 
+   
+   
+
+
+     
     // create a new event document by inserting user ID and Card ID into it
      const {eventName,eventDate,raw_eventDate,eventTime,eventAddress,eventAddressGoogleMapLink,addEngagementDetails,addSangeetDetails,addHaldiDetails,addParentDetails,isEngagementAddressSameAsWedding,isSangeetAddressSameAsWedding,isHaldiAddressSameAsWedding,priorityBetweenBrideAndGroom,priorityBetweenParents} = eventData;
 
@@ -217,6 +226,65 @@ exports.createNewCard = async(req,res) =>{
     // add Haldi details ends
 
 
+    // bride starts
+
+    const { firstName:b_firstName, lastName:b_lastName, socialMediaLinks: b_socialMedia } = brideData;
+    const b_instagramUrl = b_socialMedia[0].instagramLink
+    const b_facebookUrl = b_socialMedia[1].facebookLink
+    const b_youtubeUrl = b_socialMedia[2].youtubeLink
+
+    const savedBride = await BrideModel.create({firstName:b_firstName,lastName:b_lastName,instagramLink:b_instagramUrl,facebookLink:b_facebookUrl,youtubeLink:b_youtubeUrl,brideImageLink:brideImage_secureUrl,card:savedCard._id,event:savedEvent._id,user:user_Id})
+
+    if(savedBride){
+        isBrideDetailsSaved= true
+    }
+
+    // bride ends
+
+    
+    // groom starts
+
+    const { firstName:g_firstName, lastName:g_lastName, socialMediaLinks: g_socialMedia } = groomData;
+    const g_instagramUrl = g_socialMedia[0].instagramLink
+    const g_facebookUrl = g_socialMedia[1].facebookLink
+    const g_youtubeUrl = g_socialMedia[2].youtubeLink
+
+    const savedGroom = await GroomModel.create({firstName:g_firstName,lastName:g_lastName,instagramLink:g_instagramUrl,facebookLink:g_facebookUrl,youtubeLink:g_youtubeUrl,groomImageLink:groomImage_secureUrl,card:savedCard._id,event:savedEvent._id,user:user_Id})
+
+    if(savedGroom){
+        isGroomDetailsSaved= true
+    }
+
+    // groom ends
+
+    // bride parent details start
+    console.log('brideMotherImage_secureUrl',brideMotherImage_secureUrl)
+    console.log('brideFatherImage_secureUrl',brideFatherImage_secureUrl)
+    
+    console.log('eventData.addParentDetails',eventData.addParentDetails)
+    if(eventData.addParentDetails){
+        
+        const {firstName:bm_firstName, lastName:bm_lastName} = brideData.parentDetails.motherDetails
+        const {firstName:bf_firstName, lastName:bf_lastName} = brideData.parentDetails.fatherDetails
+
+        const {firstName:gm_firstName, lastName:gm_lastName} = groomData.parentDetails.motherDetails
+        const {firstName:gf_firstName, lastName:gf_lastName} = groomData.parentDetails.fatherDetails
+
+        const savedParent = await ParentModel.create({brideMotherFirstName:bm_firstName, brideMotherLastName:bm_lastName,brideFatherFirstName:bf_firstName,brideFatherLastName:bf_lastName,brideMotherImageUrl:brideMotherImage_secureUrl,brideFatherImageUrl:brideFatherImage_secureUrl,groomMotherFirstName:gm_firstName, groomMotherLastName:gm_lastName,groomFatherFirstName:gf_firstName,groomFatherLastName:gf_lastName,groomMotherImageUrl:groomMotherImage_secureUrl,groomFatherImageUrl:groomFatherImage_secureUrl,card:savedCard._id,event:savedEvent._id,user:user_Id})
+
+        if(savedParent){
+            isParentDetailsSaved = true
+        }
+
+
+
+    }
+ 
+    // bride parent details end
+
+
+
+
 
     
 
@@ -224,6 +292,9 @@ exports.createNewCard = async(req,res) =>{
         isEngagementDetailsSaved,
         isSangeetDetailsSaved,
         isHaldiDetailsSaved,
+        isBrideDetailsSaved,
+        isGroomDetailsSaved,
+        isParentDetailsSaved,
         message:'New Card Created successfully'
     })
    } catch (error) {
