@@ -13,6 +13,7 @@ const login = require('./routes/login.js');
 const reGenerateOTP = require('./routes/reGenerateOTP.js');
 const otpVerification = require('./routes/otpVerification.js'); 
 const createNewCard = require('./routes/card.js')
+const fetchCardDetails = require('./routes/fetchCardDetails.js'); 
 
 
 
@@ -43,6 +44,7 @@ app.use('/api/v1',login);
 app.use('/api/v1',otpVerification);
 app.use('/api/v1',reGenerateOTP);
 app.use('/api/v1',upload.any(),createNewCard)
+app.use('/api/v1',fetchCardDetails)
  
 app.listen(PORT,() => {
     console.log('server listening on port'+PORT)

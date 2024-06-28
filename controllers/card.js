@@ -12,11 +12,13 @@ const dotenv = require('dotenv');
 dotenv.config();
 const fs = require('fs')
 const ParentModel = require('../models/parents.model')
+const PhotoGalleryModel = require('../models/photoGallery.model')
 
 const brideImagesFolderName = process.env.brideImagesFolderName
 const groomImagesFolderName = process.env.groomImagesFolderName
 const brideParentImagesFolderName = process.env.brideParentImagesFolderName
 const groomParentImagesFolderName = process.env.groomParentImagesFolderName
+const photoGalleryFolderName = process.env.photoGalleryFolderName
  
 
 cloudinary.config({
@@ -33,6 +35,30 @@ const uploadImageToCloudinary = async (filePath,nestedFolderPath) =>  {
         console.log(error) 
       }
 }
+
+const uploadToCloudinaryForMultipleImages = (filePath,nestedFolderPath) => {
+    return new Promise((resolve, reject) => {
+      cloudinary.uploader.upload(filePath,{ folder: nestedFolderPath }, (error, result) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result);
+        }
+      });
+    });
+  };
+
+  const uploadMultipleFiles = async (files) => {
+    try {
+        const uploadPromises = files.map(file => uploadToCloudinaryForMultipleImages(file.path,photoGalleryFolderName));
+        const results = await Promise.all(uploadPromises);
+        // console.log('Upload Results:', results);
+        return results;
+        } catch (error) {
+        console.error('Error uploading files:', error);
+        throw error;
+        }
+};
 
 exports.createNewCard = async(req,res) =>{
    try {
@@ -56,6 +82,11 @@ exports.createNewCard = async(req,res) =>{
     const brideFatherActualImage = req.files.find(f => f.fieldname === 'brideFatherActualImage');
     const groomMotherActualImage = req.files.find(f => f.fieldname === 'groomMotherActualImage');
     const groomFatherActualImage = req.files.find(f => f.fieldname === 'groomFatherActualImage');
+
+    const imageArray = req.files.filter(element => {
+        return element.fieldname.includes('photoGallery_');
+    }) || [];
+ 
 
     if(!brideActualImage || !groomActualImage){
         return res.status(200).json({
@@ -153,10 +184,23 @@ exports.createNewCard = async(req,res) =>{
     let isBrideDetailsSaved = false;
     let isGroomDetailsSaved = false;
     let isParentDetailsSaved = false;
+    let isPhotoGallerySaved = false;
  
     // create a new card by inserting user ID into it
     const {cardStatus,cardLink,paymentStatus,selectedTemplate,userId} = JSON.parse(req.body.allData);
     const user_Id = new mongoose.Types.ObjectId(userId);
+
+    // check if cardName already exists for the current user
+    const isCardAlreadyExists = CardModel.findOne({cardLink:cardLink,user:userId});
+
+    if (!isCardAlreadyExists){
+        return res.status(200).json({
+            message:'Card with same link already exists.',
+            cardLinkExistsInDB:true
+        })
+    }
+
+
     const savedCard = await CardModel.create({cardLink:cardLink, cardStatus:cardStatus,selectedTemplate:selectedTemplate,paymentStatus:paymentStatus,user:user_Id})
 
    
@@ -282,6 +326,23 @@ exports.createNewCard = async(req,res) =>{
  
     // bride parent details end
 
+    // photo gallery starts
+
+    
+    
+    if(imageArray.length>1){
+        const uploadResults = await uploadMultipleFiles(imageArray);
+        const photoGallery_secureUrlArray = uploadResults.map(file =>file.secure_url)
+        // console.log(photoGallery_secureUrlArray)
+        if(photoGallery_secureUrlArray.length>0){
+            const savedPhotoGallery = await PhotoGalleryModel.create({photoGallery:photoGallery_secureUrlArray,card:savedCard._id,event:savedEvent._id,user:user_Id})
+            if(savedPhotoGallery){
+                isPhotoGallerySaved = true;
+            }
+        }
+    }
+
+    // photo gallery ends
 
 
 
@@ -295,6 +356,7 @@ exports.createNewCard = async(req,res) =>{
         isBrideDetailsSaved,
         isGroomDetailsSaved,
         isParentDetailsSaved,
+        isPhotoGallerySaved,
         message:'New Card Created successfully'
     })
    } catch (error) {
