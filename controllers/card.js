@@ -19,6 +19,7 @@ const groomImagesFolderName = process.env.groomImagesFolderName
 const brideParentImagesFolderName = process.env.brideParentImagesFolderName
 const groomParentImagesFolderName = process.env.groomParentImagesFolderName
 const photoGalleryFolderName = process.env.photoGalleryFolderName
+const allAudioFilesFolderName = process.env.allAudioFilesFolderName
  
 
 cloudinary.config({
@@ -27,14 +28,20 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
   });
 
-const uploadImageToCloudinary = async (filePath,nestedFolderPath) =>  {
+const uploadMediaToCloudinary = async (filePath, nestedFolderPath, resourceType = 'image') => {
     try {
-        const result = await cloudinary.uploader.upload(filePath, { folder: nestedFolderPath });
-        return result.secure_url;  
-      } catch (error) {
-        console.log(error) 
-      }
-}
+        const options = { 
+            folder: nestedFolderPath,
+            resource_type: resourceType // 'image' or 'video' for audio files
+        };
+        
+        const result = await cloudinary.uploader.upload(filePath, options);
+        return result.secure_url;
+    } catch (error) {
+        console.log(error);
+        throw new Error('Failed to upload media to Cloudinary');
+    }
+};
 
 const uploadToCloudinaryForMultipleImages = (filePath,nestedFolderPath) => {
     return new Promise((resolve, reject) => {
@@ -64,7 +71,7 @@ exports.createNewCard = async(req,res) =>{
    try {
 
 
-    
+     
     const allData = JSON.parse(req.body.allData)
     const eventData = allData.eventDetails;
     const engagementData = allData.eventDetails.subEvents.engagementDetails
@@ -73,8 +80,12 @@ exports.createNewCard = async(req,res) =>{
     const brideData = allData.brideDetails
     const groomData = allData.groomDetails
 
+    let userAudioFilePath = '';
+    const userAudioFile = req.files.find(f => f.fieldname === 'userAudioFile');
+    if(userAudioFile){
+        userAudioFilePath = userAudioFile.path
+    }
     
-
     
     const brideActualImage = req.files.find(f => f.fieldname === 'brideActualImage');
     const groomActualImage = req.files.find(f => f.fieldname === 'groomActualImage');
@@ -119,8 +130,8 @@ exports.createNewCard = async(req,res) =>{
     // console.log('groomMotherActualImageFilePath',groomMotherActualImageFilePath)
     // console.log('groomFatherActualImageFilePath',groomFatherActualImageFilePath)
 
-    const brideImage_secureUrl = await uploadImageToCloudinary(brideActualImageFilePath,brideImagesFolderName)
-    const groomImage_secureUrl = await uploadImageToCloudinary(groomActualImageFilePath,groomImagesFolderName)
+    const brideImage_secureUrl = await uploadMediaToCloudinary(brideActualImageFilePath,brideImagesFolderName)
+    const groomImage_secureUrl = await uploadMediaToCloudinary(groomActualImageFilePath,groomImagesFolderName)
 
 
 
@@ -132,11 +143,11 @@ exports.createNewCard = async(req,res) =>{
     
     if(brideMotherActualImage && brideFatherActualImage && groomMotherActualImage && groomFatherActualImage){
         
-        brideMotherImage_secureUrl = await uploadImageToCloudinary(brideMotherActualImageFilePath,brideParentImagesFolderName)
-        brideFatherImage_secureUrl = await uploadImageToCloudinary(brideFatherActualImageFilePath,brideParentImagesFolderName)
+        brideMotherImage_secureUrl = await uploadMediaToCloudinary(brideMotherActualImageFilePath,brideParentImagesFolderName)
+        brideFatherImage_secureUrl = await uploadMediaToCloudinary(brideFatherActualImageFilePath,brideParentImagesFolderName)
     
-        groomMotherImage_secureUrl = await uploadImageToCloudinary(groomMotherActualImageFilePath,groomParentImagesFolderName)
-        groomFatherImage_secureUrl = await uploadImageToCloudinary(groomFatherActualImageFilePath,groomParentImagesFolderName)
+        groomMotherImage_secureUrl = await uploadMediaToCloudinary(groomMotherActualImageFilePath,groomParentImagesFolderName)
+        groomFatherImage_secureUrl = await uploadMediaToCloudinary(groomFatherActualImageFilePath,groomParentImagesFolderName)
     }
      // Once uploaded, delete the file from server
 
@@ -185,6 +196,7 @@ exports.createNewCard = async(req,res) =>{
     let isGroomDetailsSaved = false;
     let isParentDetailsSaved = false;
     let isPhotoGallerySaved = false;
+    let audioFile_secureUrl= "";
  
     // create a new card by inserting user ID into it
     const {cardStatus,cardLink,paymentStatus,selectedTemplate,userId} = JSON.parse(req.body.allData);
@@ -302,10 +314,10 @@ exports.createNewCard = async(req,res) =>{
     // groom ends
 
     // bride parent details start
-    console.log('brideMotherImage_secureUrl',brideMotherImage_secureUrl)
-    console.log('brideFatherImage_secureUrl',brideFatherImage_secureUrl)
+    // console.log('brideMotherImage_secureUrl',brideMotherImage_secureUrl)
+    // console.log('brideFatherImage_secureUrl',brideFatherImage_secureUrl)
     
-    console.log('eventData.addParentDetails',eventData.addParentDetails)
+    // console.log('eventData.addParentDetails',eventData.addParentDetails)
     if(eventData.addParentDetails){
         
         const {firstName:bm_firstName, lastName:bm_lastName} = brideData.parentDetails.motherDetails
@@ -330,7 +342,7 @@ exports.createNewCard = async(req,res) =>{
 
     
     
-    if(imageArray.length>1){
+    if(imageArray.length>0){
         const uploadResults = await uploadMultipleFiles(imageArray);
         const photoGallery_secureUrlArray = uploadResults.map(file =>file.secure_url)
         // console.log(photoGallery_secureUrlArray)
@@ -345,6 +357,17 @@ exports.createNewCard = async(req,res) =>{
     // photo gallery ends
 
 
+    // audio file starts
+    if(allData.rejectDefaultAudioFiles){
+        audioFile_secureUrl = await uploadMediaToCloudinary(userAudioFilePath,allAudioFilesFolderName,'video')
+    }else{
+        audioFile_secureUrl = allData.selectedAudioDetails.audioUrl
+    }
+
+    console.log(audioFile_secureUrl)
+
+
+    // audio file ends
 
 
     
