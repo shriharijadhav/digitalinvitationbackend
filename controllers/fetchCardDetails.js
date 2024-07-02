@@ -6,8 +6,9 @@ const GroomModel = require("../models/groom.model");
 const EngagementModel = require("../models/engagement.model");
 const HaldiModel = require("../models/haldi.model");
 const SangeetModel = require("../models/sangeet.model");
-const ParentModel = require("../models/parents.model");
 const PhotoGalleryModel = require("../models/photoGallery.model");
+const FamilyModel = require('../models/family.model')
+const AudioFileModel = require("../models/audioFile.model");
 
 exports.fetchCardDetails = async (req,res)=>{
     try {
@@ -18,6 +19,8 @@ exports.fetchCardDetails = async (req,res)=>{
     let sangeetFromDB;
     let parentFromDB;
     let photoGallery;
+    let familyMembers;
+    let audioUrl;
  
  
     if(!cardUrl){
@@ -38,25 +41,26 @@ exports.fetchCardDetails = async (req,res)=>{
     }
 
     const eventFromDB = await EventModel.findOne({card:cardFromDB._id},{user:0,__v:0})
-    const brideFromDB = await BrideModel.findOne({card:cardFromDB._id},{user:0,__v:0})
-    const groomFromDB = await GroomModel.findOne({card:cardFromDB._id},{user:0,__v:0})
+    const brideFromDB = await BrideModel.findOne({card:cardFromDB._id},{user:0,__v:0,card:0,event:0})
+    const groomFromDB = await GroomModel.findOne({card:cardFromDB._id},{user:0,__v:0,card:0,event:0})
     
 
     if(eventFromDB.addEngagementDetails){
-         engagementFromDB = await EngagementModel.findOne({event:eventFromDB._id},{user:0,__v:0})
+         engagementFromDB = await EngagementModel.findOne({event:eventFromDB._id},{user:0,__v:0,card:0,event:0})
     }
     if(eventFromDB.addSangeetDetails){
-        sangeetFromDB = await SangeetModel.findOne({event:eventFromDB._id},{user:0,__v:0})
+        sangeetFromDB = await SangeetModel.findOne({event:eventFromDB._id},{user:0,__v:0,card:0,event:0})
     }
     if(eventFromDB.addHaldiDetails){
-        haldiFromDB = await HaldiModel.findOne({event:eventFromDB._id},{user:0,__v:0})
+        haldiFromDB = await HaldiModel.findOne({event:eventFromDB._id},{user:0,__v:0,card:0,event:0})
     }
-    if(eventFromDB.addParentDetails){
-        parentFromDB = await ParentModel.findOne({event:eventFromDB._id},{user:0,__v:0})
+    if(eventFromDB.addFamilyDetails){
+        console.log('object')
+        familyMembers = await FamilyModel.findOne({event:eventFromDB._id},{user:0,__v:0,card:0,event:0})
     }
 
-    photoGallery = await PhotoGalleryModel.findOne({event:eventFromDB._id},{user:0,__v:0})
-
+    photoGallery = await PhotoGalleryModel.findOne({event:eventFromDB._id},{user:0,__v:0,card:0,event:0})
+    audioUrl = await AudioFileModel.findOne({event:eventFromDB._id},{user:0,__v:0,card:0,event:0})
      
     return res.status(200).json({
         data:{
@@ -70,8 +74,9 @@ exports.fetchCardDetails = async (req,res)=>{
                 },
                 brideDetails:brideFromDB,
                 groomDetails:groomFromDB,
-                parentDetails:parentFromDB,
-                photoGallery: photoGallery || []
+                familyMembers:familyMembers ||[],
+                photoGallery: photoGallery || [],
+                audioUrl
 
             },
         },

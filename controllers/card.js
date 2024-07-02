@@ -11,15 +11,16 @@ const cloudinary = require('cloudinary').v2;
 const dotenv = require('dotenv');
 dotenv.config();
 const fs = require('fs')
-const ParentModel = require('../models/parents.model')
 const PhotoGalleryModel = require('../models/photoGallery.model')
+const AudioFileModel = require('../models/audioFile.model')
+const FamilyModel = require('../models/family.model')
 
 const brideImagesFolderName = process.env.brideImagesFolderName
 const groomImagesFolderName = process.env.groomImagesFolderName
-const brideParentImagesFolderName = process.env.brideParentImagesFolderName
-const groomParentImagesFolderName = process.env.groomParentImagesFolderName
+
 const photoGalleryFolderName = process.env.photoGalleryFolderName
 const allAudioFilesFolderName = process.env.allAudioFilesFolderName
+const allFamilyMembersFolder = process.env.allFamilyMembersFolder
  
 
 cloudinary.config({
@@ -55,9 +56,9 @@ const uploadToCloudinaryForMultipleImages = (filePath,nestedFolderPath) => {
     });
   };
 
-  const uploadMultipleFiles = async (files) => {
+  const uploadMultipleFiles = async (files,folderName) => {
     try {
-        const uploadPromises = files.map(file => uploadToCloudinaryForMultipleImages(file.path,photoGalleryFolderName));
+        const uploadPromises = files.map(file => uploadToCloudinaryForMultipleImages(file.path,folderName));
         const results = await Promise.all(uploadPromises);
         // console.log('Upload Results:', results);
         return results;
@@ -86,13 +87,15 @@ exports.createNewCard = async(req,res) =>{
         userAudioFilePath = userAudioFile.path
     }
     
+    // dummy 
+
+    // dummy ends
+
+    
     
     const brideActualImage = req.files.find(f => f.fieldname === 'brideActualImage');
     const groomActualImage = req.files.find(f => f.fieldname === 'groomActualImage');
-    const brideMotherActualImage = req.files.find(f => f.fieldname === 'brideMotherActualImage');
-    const brideFatherActualImage = req.files.find(f => f.fieldname === 'brideFatherActualImage');
-    const groomMotherActualImage = req.files.find(f => f.fieldname === 'groomMotherActualImage');
-    const groomFatherActualImage = req.files.find(f => f.fieldname === 'groomFatherActualImage');
+   
 
     const imageArray = req.files.filter(element => {
         return element.fieldname.includes('photoGallery_');
@@ -110,45 +113,15 @@ exports.createNewCard = async(req,res) =>{
     const brideActualImageFilePath = brideActualImage.path;
     const groomActualImageFilePath = groomActualImage.path;
 
-    let brideMotherActualImageFilePath;
-    let brideFatherActualImageFilePath ;
-    let groomMotherActualImageFilePath ;
-    let groomFatherActualImageFilePath ;
-
-    if(brideMotherActualImage && brideFatherActualImage && groomMotherActualImage && groomFatherActualImage) {
-        brideMotherActualImageFilePath = brideMotherActualImage.path;
-        brideFatherActualImageFilePath = brideFatherActualImage.path;
-        groomMotherActualImageFilePath = groomMotherActualImage.path;
-        groomFatherActualImageFilePath = groomFatherActualImage.path;
-    }
-
-    // console.log('brideActualImageFilePath',brideActualImageFilePath)
-    // console.log('brideMotherActualImageFilePath',brideMotherActualImageFilePath)
-    // console.log('brideFatherActualImageFilePath',brideFatherActualImageFilePath)
-
-    // console.log('groomActualImageFilePath',groomActualImageFilePath)
-    // console.log('groomMotherActualImageFilePath',groomMotherActualImageFilePath)
-    // console.log('groomFatherActualImageFilePath',groomFatherActualImageFilePath)
+   
 
     const brideImage_secureUrl = await uploadMediaToCloudinary(brideActualImageFilePath,brideImagesFolderName)
     const groomImage_secureUrl = await uploadMediaToCloudinary(groomActualImageFilePath,groomImagesFolderName)
 
 
 
-    let brideMotherImage_secureUrl ;
-    let brideFatherImage_secureUrl ;
-    let groomMotherImage_secureUrl = '';
-    let groomFatherImage_secureUrl = '';
 
     
-    if(brideMotherActualImage && brideFatherActualImage && groomMotherActualImage && groomFatherActualImage){
-        
-        brideMotherImage_secureUrl = await uploadMediaToCloudinary(brideMotherActualImageFilePath,brideParentImagesFolderName)
-        brideFatherImage_secureUrl = await uploadMediaToCloudinary(brideFatherActualImageFilePath,brideParentImagesFolderName)
-    
-        groomMotherImage_secureUrl = await uploadMediaToCloudinary(groomMotherActualImageFilePath,groomParentImagesFolderName)
-        groomFatherImage_secureUrl = await uploadMediaToCloudinary(groomFatherActualImageFilePath,groomParentImagesFolderName)
-    }
      // Once uploaded, delete the file from server
 
 
@@ -157,37 +130,14 @@ exports.createNewCard = async(req,res) =>{
     fs.unlinkSync(brideActualImageFilePath);
     fs.unlinkSync(groomActualImageFilePath);
 
-    if(brideMotherActualImage ){
-        fs.unlinkSync(brideMotherActualImageFilePath);
-    }
-    if(brideFatherActualImage ){
-        fs.unlinkSync(brideFatherActualImageFilePath);
-    }
-    if(groomMotherActualImage ){
-        fs.unlinkSync(groomMotherActualImageFilePath);
-    }
-    if(groomFatherActualImage ){
-        fs.unlinkSync(groomFatherActualImageFilePath);
-    }
     } catch (error) {
-        console.log('error')
+        console.log('error deleting groom or bride img')
     }
     
    
 
 
 
-
-
-    // return res.status(200).json({
-    //     message: "done",
-    //     brideImage_secureUrl,
-    //     groomImage_secureUrl,
-    //     brideMotherImage_secureUrl,
-    //     brideFatherImage_secureUrl,
-    //     groomMotherImage_secureUrl,
-    //     groomFatherImage_secureUrl
-    // })
 
     let isEngagementDetailsSaved = false;
     let isSangeetDetailsSaved = false;
@@ -197,6 +147,8 @@ exports.createNewCard = async(req,res) =>{
     let isParentDetailsSaved = false;
     let isPhotoGallerySaved = false;
     let audioFile_secureUrl= "";
+    let isAudioFileSaved = false;
+    let isFamilyDetailsSaved = false;
  
     // create a new card by inserting user ID into it
     const {cardStatus,cardLink,paymentStatus,selectedTemplate,userId} = JSON.parse(req.body.allData);
@@ -221,9 +173,9 @@ exports.createNewCard = async(req,res) =>{
 
      
     // create a new event document by inserting user ID and Card ID into it
-     const {eventName,eventDate,raw_eventDate,eventTime,eventAddress,eventAddressGoogleMapLink,addEngagementDetails,addSangeetDetails,addHaldiDetails,addParentDetails,isEngagementAddressSameAsWedding,isSangeetAddressSameAsWedding,isHaldiAddressSameAsWedding,priorityBetweenBrideAndGroom,priorityBetweenParents} = eventData;
+     const {eventName,eventDate,raw_eventDate,eventTime,eventAddress,eventAddressGoogleMapLink,addEngagementDetails,addSangeetDetails,addHaldiDetails,addFamilyDetails,isEngagementAddressSameAsWedding,isSangeetAddressSameAsWedding,isHaldiAddressSameAsWedding,priorityBetweenBrideAndGroom,priorityBetweenFamily} = eventData;
 
-    const savedEvent = await EventModel.create({eventName:eventName,eventDate:eventDate,raw_eventDate:raw_eventDate,eventTime:eventTime,eventAddress:eventAddress,eventAddressGoogleMapLink:eventAddressGoogleMapLink,addEngagementDetails:addEngagementDetails,addSangeetDetails:addSangeetDetails,addHaldiDetails:addHaldiDetails,priorityBetweenParents:priorityBetweenParents,priorityBetweenBrideAndGroom:priorityBetweenBrideAndGroom,isEngagementAddressSameAsWedding:isEngagementAddressSameAsWedding,isSangeetAddressSameAsWedding:isSangeetAddressSameAsWedding,isHaldiAddressSameAsWedding:isHaldiAddressSameAsWedding,addParentDetails:addParentDetails,card:savedCard._id,user:user_Id})
+    const savedEvent = await EventModel.create({eventName:eventName,eventDate:eventDate,raw_eventDate:raw_eventDate,eventTime:eventTime,eventAddress:eventAddress,eventAddressGoogleMapLink:eventAddressGoogleMapLink,addEngagementDetails:addEngagementDetails,addSangeetDetails:addSangeetDetails,addHaldiDetails:addHaldiDetails,priorityBetweenFamily:priorityBetweenFamily,priorityBetweenBrideAndGroom:priorityBetweenBrideAndGroom,isEngagementAddressSameAsWedding:isEngagementAddressSameAsWedding,isSangeetAddressSameAsWedding:isSangeetAddressSameAsWedding,isHaldiAddressSameAsWedding:isHaldiAddressSameAsWedding,addFamilyDetails:addFamilyDetails,card:savedCard._id,user:user_Id})
 
     // add engagement details starts
     if(addEngagementDetails){
@@ -313,37 +265,62 @@ exports.createNewCard = async(req,res) =>{
 
     // groom ends
 
-    // bride parent details start
-    // console.log('brideMotherImage_secureUrl',brideMotherImage_secureUrl)
-    // console.log('brideFatherImage_secureUrl',brideFatherImage_secureUrl)
+    // family   details start
     
-    // console.log('eventData.addParentDetails',eventData.addParentDetails)
-    if(eventData.addParentDetails){
+    
+    if(eventData.addFamilyDetails){
+
         
-        const {firstName:bm_firstName, lastName:bm_lastName} = brideData.parentDetails.motherDetails
-        const {firstName:bf_firstName, lastName:bf_lastName} = brideData.parentDetails.fatherDetails
+        const familyMemberImageArray = req.files.filter(element => {
+            return element.fieldname.includes('familyMember_');
+        }) || [];
+        
+        if(familyMemberImageArray.length>0){
 
-        const {firstName:gm_firstName, lastName:gm_lastName} = groomData.parentDetails.motherDetails
-        const {firstName:gf_firstName, lastName:gf_lastName} = groomData.parentDetails.fatherDetails
+             const uploadResults = await uploadMultipleFiles(familyMemberImageArray,allFamilyMembersFolder);
+            const familyMembers_secureUrlArray = uploadResults.map(file =>file.secure_url)
+            
+            // delete all images from server folder once uploaded and saved in database
+            familyMemberImageArray.forEach((file) => {
+              try {
+                
+                fs.unlinkSync(`${file.path}`)
+              } catch (error) {
+                console.log('error deleting member image')
+              }
+            });
 
-        const savedParent = await ParentModel.create({brideMotherFirstName:bm_firstName, brideMotherLastName:bm_lastName,brideFatherFirstName:bf_firstName,brideFatherLastName:bf_lastName,brideMotherImageUrl:brideMotherImage_secureUrl,brideFatherImageUrl:brideFatherImage_secureUrl,groomMotherFirstName:gm_firstName, groomMotherLastName:gm_lastName,groomFatherFirstName:gf_firstName,groomFatherLastName:gf_lastName,groomMotherImageUrl:groomMotherImage_secureUrl,groomFatherImageUrl:groomFatherImage_secureUrl,card:savedCard._id,event:savedEvent._id,user:user_Id})
 
-        if(savedParent){
-            isParentDetailsSaved = true
+
+            let arrayTemp = eventData.familyDetailsArray.map(({ actualImage, ...rest }) => rest);
+            arrayTemp = arrayTemp.map((item,index)=>{
+                item.actualImageUrl = familyMembers_secureUrlArray[index]
+                return item
+            })
+           
+            const savedFamilyMembers = FamilyModel.create({familyDetailsArray:arrayTemp,card:savedCard._id,event:savedEvent._id,user:user_Id})
+            if(savedFamilyMembers){
+                isFamilyDetailsSaved = true
+            }
+
+
+
+
+        }else{
+            isFamilyDetailsSaved= false;
         }
-
-
-
+       
+ 
     }
  
-    // bride parent details end
+    //  family details end
 
     // photo gallery starts
 
     
     
     if(imageArray.length>0){
-        const uploadResults = await uploadMultipleFiles(imageArray);
+        const uploadResults = await uploadMultipleFiles(imageArray,photoGalleryFolderName);
         const photoGallery_secureUrlArray = uploadResults.map(file =>file.secure_url)
         // console.log(photoGallery_secureUrlArray)
         if(photoGallery_secureUrlArray.length>0){
@@ -352,6 +329,16 @@ exports.createNewCard = async(req,res) =>{
                 isPhotoGallerySaved = true;
             }
         }
+
+        // delete all images from server folder once uploaded and saved in database
+        imageArray.forEach((file) => {
+            try {
+              
+              fs.unlinkSync(`${file.path}`)
+            } catch (error) {
+              console.log('error deleting member image')
+            }
+          });
     }
 
     // photo gallery ends
@@ -364,8 +351,20 @@ exports.createNewCard = async(req,res) =>{
         audioFile_secureUrl = allData.selectedAudioDetails.audioUrl
     }
 
-    console.log(audioFile_secureUrl)
+    const savedAudioFile = await AudioFileModel.create({audioFile_secureUrl:audioFile_secureUrl,card:savedCard._id,event:savedEvent._id,user:user_Id})
+    
+    if(savedAudioFile){
+        isAudioFileSaved = true;
+    }
 
+    // delete audio file from server once uploaded
+    if(userAudioFilePath.length>0){
+        try {
+            fs.unlinkSync(userAudioFilePath)
+        } catch (error) {
+            
+        }
+    }
 
     // audio file ends
 
@@ -380,6 +379,8 @@ exports.createNewCard = async(req,res) =>{
         isGroomDetailsSaved,
         isParentDetailsSaved,
         isPhotoGallerySaved,
+        isAudioFileSaved,
+        isFamilyDetailsSaved,
         message:'New Card Created successfully'
     })
    } catch (error) {

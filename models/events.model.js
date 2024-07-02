@@ -28,7 +28,7 @@ const eventSchema = mongoose.Schema({
     addHaldiDetails:{
         type:Boolean,
     },
-    addParentDetails:{
+    addFamilyDetails:{
         type:Boolean,
     },
     isEngagementAddressSameAsWedding:{
@@ -43,7 +43,7 @@ const eventSchema = mongoose.Schema({
     priorityBetweenBrideAndGroom:{
         type:String
     },
-    priorityBetweenParents:{
+    priorityBetweenFamily:{
         type:String
     },
     card:{
