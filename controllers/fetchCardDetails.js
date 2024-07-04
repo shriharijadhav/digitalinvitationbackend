@@ -55,7 +55,7 @@ exports.fetchCardDetails = async (req,res)=>{
         haldiFromDB = await HaldiModel.findOne({event:eventFromDB._id},{user:0,__v:0,card:0,event:0})
     }
     if(eventFromDB.addFamilyDetails){
-        console.log('object')
+        // console.log('object')
         familyMembers = await FamilyModel.findOne({event:eventFromDB._id},{user:0,__v:0,card:0,event:0})
     }
 

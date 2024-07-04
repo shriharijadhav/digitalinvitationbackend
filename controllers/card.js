@@ -182,7 +182,7 @@ exports.createNewCard = async(req,res) =>{
         const {engagementDate,raw_engagementDate,engagementTime,engagementAddress} = engagementData
         let temp_engagementAddress;
         if(isEngagementAddressSameAsWedding){
-            temp_engagementAddress = eventAddress
+            temp_engagementAddress = "Same as Wedding address"
         }else{
             temp_engagementAddress= engagementAddress
         }
@@ -200,7 +200,7 @@ exports.createNewCard = async(req,res) =>{
         const {sangeetDate,raw_sangeetDate,sangeetTime,sangeetAddress} = sangeetData
         let temp_sangeetAddress;
         if(isSangeetAddressSameAsWedding){
-            temp_sangeetAddress = eventAddress
+            temp_sangeetAddress = "Same as Wedding address" 
         }else{
             temp_sangeetAddress= sangeetAddress
         }
@@ -219,7 +219,7 @@ exports.createNewCard = async(req,res) =>{
         const {haldiDate,raw_haldiDate,haldiTime,haldiAddress} = haldiData
         let temp_haldiAddress;
         if(isSangeetAddressSameAsWedding){
-            temp_haldiAddress = eventAddress
+            temp_haldiAddress = "Same as Wedding address"
         }else{
             temp_haldiAddress= haldiAddress
         }
