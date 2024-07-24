@@ -1,4 +1,4 @@
-const user = require('../models/user');
+const UserModel = require('../models/user');
 const argon2 = require('argon2');
 const jwt = require('jsonwebtoken');
 const { token } = require('morgan');
@@ -8,15 +8,16 @@ const crypto = require('crypto');
 const mailSender = require('../utility/mailSender');
 require('dotenv').config();
 
+
 exports.login = async (req, res) => {
     try {
         const {email, password} = req.body;
-        const token = req?.cookies?.secureLoginCookie;
+       
+        const existingUser = await UserModel.findOne({ email: email});
+        console.log(req.cookies.secureLoginCookie); // Correct way to access cookies
+        console.log(existingUser)
 
-        // console.log('object,',token)
-        const exitingUser = await user.findOne({ email: email});
-
-        if(!exitingUser) {
+        if(!existingUser) {
             return res.status(404).json({
                 message:'User not found. Please sign up first.',
                 success: false,
@@ -24,8 +25,7 @@ exports.login = async (req, res) => {
 
             })
         }
-
-        const isPasswordValid = await argon2.verify(exitingUser.password, password);
+        const isPasswordValid = await argon2.verify(existingUser.password, password);
 
         if(!isPasswordValid) {
             return res.status(200).json({
@@ -39,12 +39,13 @@ exports.login = async (req, res) => {
 
         // 
         if(isPasswordValid) {
+            console.log(isPasswordValid)
             
             // check if user is verified first
-            if (exitingUser.isVerifiedAccount) {
+            if (existingUser.isVerifiedAccount) {
                 const payload = {
-                    _id:exitingUser._id,
-                    email:exitingUser.email
+                    _id:existingUser._id,
+                    email:existingUser.email
                 }
     
                 jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {
@@ -54,26 +55,33 @@ exports.login = async (req, res) => {
                     }
                     // Use the token here
                     const cookieOptions = {
-                        expires:new Date(Date.now()+ 5*1000),
-                        httpOnly: false,       // Prevents JavaScript access to the cookie (mitigates XSS attacks)
-                     }
+                        httpOnly: true, // Helps prevent cross-site scripting attacks
+                        secure: true, // Ensures the browser only sends the cookie over HTTPS
+                        maxAge: 1000 * 60 * 60 * 24, // Cookie expiry time in milliseconds
+                      };
                     
                     // console.log('Token:', token);
-                     return res.cookie('secureLoginCookie',token,cookieOptions).status(200).json({
-                        message: 'Login successful',
-                        loginSuccess: true,
-                        proceedToVerifyAccountScreen:false,
-                        userDetails: exitingUser,
-                        success:true,
-                    })
+                    existingUser.password = null;
+                    return res
+                    .cookie('secureLoginCookie', token, cookieOptions)
+                    .status(200)
+                    .json({
+                      message: 'Login successful',
+                      loginSuccess: true,
+                      proceedToVerifyAccountScreen: false,
+                      userDetails: 'existingUser', // Replace with actual user details
+                      success: true,
+                    });
+                
                 });
+                console.log('login successful')
             } else {
 
                 try {
 
-                    const email = exitingUser.email;
-                    const firstName = exitingUser.firstName;
-                    const lastName = exitingUser.lastName;
+                    const email = existingUser.email;
+                    const firstName = existingUser.firstName;
+                    const lastName = existingUser.lastName;
 
                     // check if otp is already send over mail and still valid (exists in database) 
                     const isOTPExistsInDB =  await otpModel.findOne({email: email})
