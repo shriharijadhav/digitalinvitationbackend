@@ -55,8 +55,10 @@ exports.login = async (req, res) => {
                     }
               
                     const cookieOptions = {
-                      httpOnly: true,
-                      maxAge: 1000 * 60 * 60 * 24, // 1 day
+                    httpOnly: true,
+                    secure: true, // Set to true if using HTTPS
+                    sameSite: 'Lax', // Or 'Strict'
+                    maxAge: 1000 * 60 * 60 * 24, // 1 day
                     };
               
                     return res
