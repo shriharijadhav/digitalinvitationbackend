@@ -50,30 +50,26 @@ exports.login = async (req, res) => {
     
                 jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {
                     if (err) {
-                        console.error('Error signing the token:', err);
-                        return;
+                      console.error('Error signing the token:', err);
+                      return res.status(500).json({ error: 'Internal Server Error' });
                     }
-                    // Use the token here
+              
                     const cookieOptions = {
-                        httpOnly: true, // Helps prevent cross-site scripting attacks
-                        secure: true, // Ensures the browser only sends the cookie over HTTPS
-                        maxAge: 1000 * 60 * 60 * 24, // Cookie expiry time in milliseconds
-                      };
-                    
-                    // console.log('Token:', token);
-                    existingUser.password = null;
+                      httpOnly: true,
+                      maxAge: 1000 * 60 * 60 * 24, // 1 day
+                    };
+              
                     return res
-                    .cookie('secureLoginCookie', token, cookieOptions)
-                    .status(200)
-                    .json({
-                      message: 'Login successful',
-                      loginSuccess: true,
-                      proceedToVerifyAccountScreen: false,
-                      userDetails: 'existingUser', // Replace with actual user details
-                      success: true,
-                    });
-                
-                });
+                      .cookie('secureLoginCookie', token, cookieOptions)
+                      .status(200)
+                      .json({
+                        message: 'Login successful',
+                        loginSuccess: true,
+                        proceedToVerifyAccountScreen: false,
+                        userDetails: { ...existingUser, password: null }, // Send user details without password
+                        success: true,
+                      });
+                  });
                 console.log('login successful')
             } else {
 

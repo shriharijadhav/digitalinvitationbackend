@@ -5,6 +5,7 @@ const cors = require('cors');
 const  cookieParser = require('cookie-parser')
 const multer = require('multer');
 const path = require('path');
+require('dotenv').config();
 
  
 
@@ -22,7 +23,10 @@ const app = express();
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+app.use(cors({
+    origin: process.env.FRONTEND_BASE_URL, // Your frontend URL
+    credentials: true, // Allow credentials (cookies) to be sent
+  }));
 
 const storage = multer.diskStorage({
     destination:(req,file,cb)=>{
