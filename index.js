@@ -28,7 +28,7 @@ const corsOptions = {
     origin: process.env.FRONTEND_BASE_URL,
     credentials: true, // if you need to handle cookies or authentication
 };
-app.use(cors(corsOptions));
+app.use(cors());
 
 const storage = multer.diskStorage({
     destination:(req,file,cb)=>{

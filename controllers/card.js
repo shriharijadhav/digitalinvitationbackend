@@ -384,6 +384,6 @@ exports.createNewCard = async(req,res) =>{
         message:'New Card Created successfully'
     })
    } catch (error) {
-    console.log(error)
+    console.log(error+"You can ignore this error")
    }
 }
