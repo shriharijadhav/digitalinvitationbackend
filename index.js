@@ -23,7 +23,10 @@ const app = express();
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+app.use(cors({
+    origin: process.env.FRONTEND_BASE_URL,
+    credentials: true,
+  }));
 
 const storage = multer.diskStorage({
     destination:(req,file,cb)=>{
